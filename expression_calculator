@@ -1,0 +1,339 @@
+#include <iostream>
+#include <vector>
+#include <string>
+
+
+enum IOType
+{
+    INTEGER,
+    ADD,
+    SUBTRACT,
+    MULTIPLY,
+    DIVIDE,
+    LEFT_PAR,
+    RIGHT_PAR
+};
+
+IOType OperatorToIOType(char operator_char)
+{
+    if (operator_char == '+')
+        return ADD;
+    else if (operator_char == '-')
+        return SUBTRACT;
+    else if (operator_char == '*')
+        return MULTIPLY;
+    else if (operator_char == '/')
+        return DIVIDE;
+    else if (operator_char == '(')
+        return LEFT_PAR;
+    else if (operator_char == ')')
+        return RIGHT_PAR;
+    else
+    {
+        std::cout << "Invalid operator!" << std::endl;
+        exit(1);
+    }
+}
+
+
+char IOTypeToOperator(IOType ioType)
+{
+    if (ioType == ADD)
+        return '+';
+    else if (ioType == SUBTRACT)
+        return '-';
+    else if (ioType == MULTIPLY)
+        return '*';
+    else if (ioType == DIVIDE)
+        return '/';
+    else if (ioType == LEFT_PAR)
+        return '(';
+    else if (ioType == RIGHT_PAR)
+        return ')';
+    else
+    {
+        std::cout << "Invalid IOType for operator!" << std::endl;
+        exit(1);
+    }
+}
+
+
+class IntegerOrOperator
+{
+public:
+    IOType type;
+    double value;
+    char op;
+    IntegerOrOperator(int v = 0)
+    {
+        value = v;
+        type = INTEGER;
+    }
+    IntegerOrOperator(char o = ' ')
+    {
+        op = o;
+        type = OperatorToIOType(o);
+    }
+};
+
+
+class Node
+{
+public:
+    IntegerOrOperator* value;
+    std::vector<Node*> child;
+    explicit Node(IntegerOrOperator* v = nullptr)
+    {
+        value = v;
+    }
+    friend std::ostream& operator<< (std::ostream &out, const Node &node);
+
+
+};
+
+std::ostream& operator<< (std::ostream &out, const Node &node)
+{
+    if (&node)
+    {
+        if ((*node.value).type == INTEGER)
+            out << (*node.value).value;
+        else
+            out << IOTypeToOperator((*node.value).type);
+    }
+    else
+        out << "nullptr";
+    return out;
+}
+
+
+
+std::string PrintNode(const Node* node)
+{
+    if (node)
+    {
+        if ((node->value)->type == INTEGER)
+            return std::to_string((node->value)->value);
+        else
+            return std::string(1, IOTypeToOperator((node->value)->type));
+    }
+    else
+        return "nullptr";
+}
+
+
+
+/*
+bool CheckAndPrint(const Node& node, std::set<int>& seen)
+{
+    if (seen.count(node.value) == 0)
+    {
+        std::cout << node.value << std::endl;
+        seen.insert(node.value);
+        return true;
+    }
+    return false;
+}
+
+void DFS(const Node& node, std::set<int>& seen)
+{
+    if (CheckAndPrint(node,seen))
+    {
+        for(auto i : node.child)
+            DFS(*i, seen);
+    }
+}
+
+void BFS(const Node& node, std::set<int>& seen)
+{
+    CheckAndPrint(node,seen);
+    std::set<int> tmp= seen;
+
+    for(auto i : node.child)
+        CheckAndPrint(*i,seen);
+    for(auto i : node.child)
+    {
+        if(tmp.count(i->value) == 0)
+            BFS(*i,seen);
+    }
+}
+
+*/
+
+
+void PrintExpression(const std::vector<IntegerOrOperator*>& expression)
+{
+    for(auto x : expression)
+    {
+        if (x->type == INTEGER)
+        {
+            std::cout << x->value << " ";
+        }
+        else
+        {
+            std::cout << IOTypeToOperator(x->type) << " ";
+        }
+
+    }
+    std::cout << std::endl;
+}
+
+
+std::vector<IntegerOrOperator*> expression(const std::string& str_expr)
+{
+    std::vector<IntegerOrOperator*> expr;
+    for(auto i = 0; i < str_expr.size(); ++i)
+    {
+        while (str_expr[i] == ' ')
+            i++;
+        if (i >= str_expr.size())
+            break;
+        if (expr.empty() && (str_expr[i] == '+' || str_expr[i] == '-'))
+            expr.push_back(new IntegerOrOperator(0));
+        if (!isdigit(str_expr[i]))
+            expr.push_back(new IntegerOrOperator(str_expr[i]));
+        else
+        {
+            if (i > 0 && str_expr[i-1] != ' ' && expr.back()->type == INTEGER)
+            {
+                expr.back()->value = stoi(std::to_string(int(expr.back()->value))+std::to_string(str_expr[i] - '0'));
+            }
+            else
+            {
+                expr.push_back(new IntegerOrOperator(int(str_expr[i] - '0')));
+            }
+
+        }
+    }
+    return expr;
+}
+
+
+Node ExecuteOperator(Node &node)
+{
+    if (node.child.size() == 2)
+    {
+        if (node.child[0]->value->type == INTEGER && node.child[1]->value->type == INTEGER)
+        {
+            if (node.value->type == ADD)
+                node.value->value = node.child[0]->value->value + node.child[1]->value->value;
+            else if (node.value->type == SUBTRACT)
+                node.value->value = node.child[0]->value->value - node.child[1]->value->value;
+            else if (node.value->type == MULTIPLY)
+                node.value->value = node.child[0]->value->value * node.child[1]->value->value;
+            else if (node.value->type == DIVIDE)
+            {
+                if (node.child[1]->value->value != 0)
+                    node.value->value = node.child[0]->value->value / node.child[1]->value->value;
+                else
+                {
+                    std::cout << "Zero divisor!" << std::endl;
+                    exit(1);
+                }
+            }
+
+            node.value->type = INTEGER;
+
+            delete node.child[0];
+            delete node.child[1];
+            node.child.pop_back();
+            node.child.pop_back();
+            node.child[0] = nullptr;
+            node.child[1] = nullptr;
+
+            }
+        }
+
+    //Node* n = new Node(new IntegerOrOperator(100000));
+    return node;
+};
+
+
+double evaluate(const std::vector<IntegerOrOperator*>& expression)
+{
+    Node* prevNode = nullptr;
+    Node* newNode = nullptr;
+    Node* rootNode = nullptr;
+    //Node* prevOpNode = nullptr;
+
+
+
+    for(auto x : expression)
+    {
+        newNode = new Node(x);
+        std::cout << "newNode: " << *newNode << std::endl;
+        std::cout << "prevNode: " << *prevNode << std::endl;
+
+        /*
+        std::cout << "newNode->value->type:" << newNode->value->type << std::endl;
+        std::cout << "ADD:" << ADD << std::endl;
+        if (newNode->value->type == 1)
+        {
+            newNode->child.push_back(prevNode);
+            rootNode=newNode;
+        }
+
+            if (prevNode->value->type == 1)
+            {
+                std::cout << "prevNode->value->type:" << prevNode->value->type << std::endl;
+                prevNode->child.push_back(newNode);
+            }
+
+
+        -*/
+        if (x != expression.back())
+            prevNode = newNode;
+        std::cout << "--------------------------------------------" << std::endl;
+    }
+
+
+    /*
+    if (rootNode->value->type==INTEGER && rootNode->child.size()==0)
+    {
+        double r = rootNode->value->value;
+        delete rootNode;
+        return r;
+    }
+     */
+
+
+    return 0.0;
+}
+
+
+int main()
+{
+    std::string s = "1000 + 15";
+    std::vector<IntegerOrOperator*> e = expression(s);
+    PrintExpression(e);
+    std::cout << evaluate(e) << std::endl;
+
+
+
+    /*
+    Node* plus = new Node(new IntegerOrOperator('*'));
+    Node* n1 = new Node(new IntegerOrOperator(100));
+    Node* n2 = new Node(new IntegerOrOperator(50));
+
+    plus->child.push_back(n1);
+    plus->child.push_back(n2);
+
+
+
+
+    //ExecuteOperator(plus);
+    std::cout << *plus->child[0] << std::endl;
+    std::cout << *plus->child[1] << std::endl;
+    std::cout << *n1 << " " << *plus << " " << *n2 << " = " << ExecuteOperator(*plus) << std::endl;
+    std::cout << *plus->child[0] << std::endl;
+    std::cout << *plus->child[1] << std::endl;
+    std::cout << plus->child.size() << std::endl;
+    std::cout << (plus->child[0] == nullptr) << std::endl;
+
+
+
+
+
+    //std::cout << ExecuteOperator(plus).value->value << std::endl;
+    */
+    return 0;
+}
