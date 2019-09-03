@@ -248,6 +248,43 @@ Node ExecuteOperator(Node &node)
 };
 
 
+Node* ExecuteOperator(Node* node)
+{
+    if (node->child.size() == 2)
+    {
+        if (node->child[0]->value->type == INTEGER && node->child[1]->value->type == INTEGER)
+        {
+            if (node->value->type == ADD)
+                node->value->value = node->child[0]->value->value + node->child[1]->value->value;
+            else if (node->value->type == SUBTRACT)
+                node->value->value = node->child[0]->value->value - node->child[1]->value->value;
+            else if (node->value->type == MULTIPLY)
+                node->value->value = node->child[0]->value->value * node->child[1]->value->value;
+            else if (node->value->type == DIVIDE)
+            {
+                if (node->child[1]->value->value != 0)
+                    node->value->value = node->child[0]->value->value / node->child[1]->value->value;
+                else
+                {
+                    std::cout << "Zero divisor!" << std::endl;
+                    exit(1);
+                }
+            }
+
+            node->value->type = INTEGER;
+
+            delete node->child[1];
+            node->child.pop_back();
+
+            delete node->child[0];
+            node->child.pop_back();
+        }
+    }
+
+    return node;
+};
+
+
 double evaluate(const std::vector<IntegerOrOperator*>& expression)
 {
     Node* prevNode = nullptr;
