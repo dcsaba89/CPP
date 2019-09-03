@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
-
+#include <map>
 
 enum IOType
 {
@@ -13,6 +13,18 @@ enum IOType
     LEFT_PAR,
     RIGHT_PAR
 };
+
+
+std::map<IOType, char> operator_map =
+{
+        {ADD, '+' },
+        {SUBTRACT, '-' },
+        {MULTIPLY, '*' },
+        {DIVIDE, '/' },
+        {LEFT_PAR, '(' },
+        {RIGHT_PAR, ')' }
+};
+
 
 IOType OperatorToIOType(char operator_char)
 {
@@ -38,6 +50,7 @@ IOType OperatorToIOType(char operator_char)
 
 char IOTypeToOperator(IOType ioType)
 {
+
     if (ioType == ADD)
         return '+';
     else if (ioType == SUBTRACT)
@@ -57,6 +70,26 @@ char IOTypeToOperator(IOType ioType)
     }
 }
 
+
+bool isOperator(IOType ioType)
+{
+    if (ioType == ADD ||ioType == SUBTRACT || ioType == MULTIPLY || ioType == DIVIDE)
+        return true;
+    else
+        return false;
+}
+
+int precedence(char op)
+{
+    if(op == '(' || op == ')')
+        return 0;
+    else if(op == '+' || op == '-')
+        return 1;
+    else if(op == '*' || op == '/')
+        return 2;
+
+    throw 0;
+}
 
 class IntegerOrOperator
 {
@@ -155,6 +188,15 @@ void PrintExpression(const std::vector<IntegerOrOperator*>& expression)
     std::cout << std::endl;
 }
 
+int precedence(Node* node)
+{
+    if(node->value->type == ADD || node->value->type == SUBTRACT)
+        return 1;
+    else if(node->value->type == MULTIPLY || node->value->type == DIVIDE)
+        return 2;
+    throw 0;
+}
+
 
 std::vector<IntegerOrOperator*> expression(const std::string& str_expr)
 {
@@ -242,8 +284,8 @@ double evaluate(const std::vector<IntegerOrOperator*>& expression)
 {
     Node* prevNode = nullptr;
     Node* newNode = nullptr;
-    Node* rootNode = nullptr;
-    //Node* prevOpNode = nullptr;
+    Node* root = nullptr;
+    Node* prevOp = nullptr;
 
     for(auto x : expression)
     {
@@ -251,13 +293,15 @@ double evaluate(const std::vector<IntegerOrOperator*>& expression)
         std::cout << "newNode: " << newNode << std::endl;
         std::cout << "prevNode: " << prevNode << std::endl;
 
+
+
         if (newNode->value->type == ADD)
         {
             newNode->child.push_back(prevNode);
             std::cout << "newNode->child.back(): " << newNode->child.back() << std::endl;
             std::cout << "newNode->child.size(): " << newNode->child.size() << std::endl;
-            rootNode=newNode;
-            std::cout << "rootNode:" << rootNode << std::endl;
+            root=newNode;
+            std::cout << "root:" << root << std::endl;
         }
         if (prevNode)
         {
@@ -271,21 +315,45 @@ double evaluate(const std::vector<IntegerOrOperator*>& expression)
 
 
         if (x != expression.back())
+        {
+
+            if (isOperator(newNode->value->type))
+            {
+                std::cout << "precedence(prevOp)<=precedence(newNode): " << (precedence(prevOp)<=precedence(newNode)) << std::endl;
+                if (precedence(prevOp)<precedence(newNode))
+                {
+                    prevOp->child.push_back(newNode);
+                    newNode->child.push_back(prevNode);
+                }
+                else
+                {
+                    root=prevNode;
+                    prevNode->child.push_back(prevOp);
+                }
+
+                prevOp=prevNode;
+                std::cout << "prevOp: " << prevOp << std::endl;
+            }
+
             prevNode = newNode;
+
+        }
+
+
         std::cout << "--------------------------------------------" << std::endl;
 
 
     }
 
-    ExecuteOperator(rootNode);
-    std::cout << "Executed rootNode value: " << rootNode << std::endl;
+    ExecuteOperator(root);
+    std::cout << "Executed root value: " << root << std::endl;
 
-    if(rootNode)
+    if(root)
     {
-        if (rootNode->value->type == INTEGER && rootNode->child.empty())
+        if (root->value->type == INTEGER && root->child.empty())
         {
-            double r = rootNode->value->value;
-            delete rootNode;
+            double r = root->value->value;
+            delete root;
             return r;
         }
 
@@ -297,11 +365,15 @@ double evaluate(const std::vector<IntegerOrOperator*>& expression)
 
 int main()
 {
-    std::string s = "1000 + 15";
+
+    std::string s = "1000 + 100 * (15 + 77)";
     std::vector<IntegerOrOperator*> e = expression(s);
     PrintExpression(e);
+
     std::cout << evaluate(e) << std::endl;
 
+
+    /*
 
 
     Node* plus = new Node(new IntegerOrOperator('+'));
@@ -318,6 +390,10 @@ int main()
     std::cout << plus << std::endl;
 
     std::cout << "plus->value->value: "<< plus->value->value << std::endl;
+    */
+
+
+    std::cout << isOperator(INTEGER) << std::endl;
 
 
     return 0;
