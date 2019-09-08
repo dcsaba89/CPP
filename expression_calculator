@@ -3,6 +3,8 @@
 #include <string>
 #include <map>
 #include <set>
+//#include <chrono>
+//#include <random>
 
 enum IOType
 {
@@ -17,14 +19,14 @@ enum IOType
 
 
 std::map<IOType, char> operator_map =
-{
-        {ADD, '+' },
-        {SUBTRACT, '-' },
-        {MULTIPLY, '*' },
-        {DIVIDE, '/' },
-        {LEFT_PAR, '(' },
-        {RIGHT_PAR, ')' }
-};
+        {
+                {ADD, '+' },
+                {SUBTRACT, '-' },
+                {MULTIPLY, '*' },
+                {DIVIDE, '/' },
+                {LEFT_PAR, '(' },
+                {RIGHT_PAR, ')' }
+        };
 
 
 IOType OperatorToIOType(char operator_char)
@@ -71,7 +73,6 @@ char IOTypeToOperator(IOType ioType)
     }
 }
 
-
 int precedence(char op)
 {
     if(op == '(' || op == ')')
@@ -105,16 +106,29 @@ public:
     }
 };
 
+class Node;
+std::ostream& operator<< (std::ostream&, const Node*);
 
 class Node
 {
 public:
     IntegerOrOperator* value;
     std::vector<Node*> child;
-    explicit Node(IntegerOrOperator* v = nullptr)
+    Node* parent;
+    explicit Node(IntegerOrOperator* v = nullptr) { value = v; }
+    void addChild(Node* ch)
     {
-        value = v;
+        std::cout << this << "->addChild(" << ch << ") " << std::endl;
+        child.push_back(ch);
+        ch->setParent(this);
+        //std::cout << ch << "->parent: "<< this << std::endl;
     }
+    void setParent(Node* p)
+    {
+        parent = p;
+        //std::cout << this << "->parent: "<< parent << std::endl;
+    }
+
 };
 
 std::ostream& operator<< (std::ostream &out, const Node* node)
@@ -165,10 +179,12 @@ std::string PrintSet(std::set<Node*>& seen)
 
 bool CheckAndPrint(Node* node, std::set<Node*>& seen)
 {
+    std::cout << "CheckAndPrint(" << node << ", " << PrintSet(seen) << ")" << std::endl;
     if (seen.count(node) == 0)
     {
         std::cout <<"Node checked: " << node << std::endl;
         seen.insert(node);
+        std::cout << "seen = " << PrintSet(seen) << std::endl;
         return true;
     }
     return false;
@@ -185,16 +201,46 @@ void DFS(Node* node, std::set<Node*>& seen)
     }
 }
 
+Node* ExecuteOperator(Node*);
 
 void BFS(Node* node, std::set<Node*>& seen)
 {
     std::cout << "BFS(" << node << ", " << PrintSet(seen) << ")" << std::endl;
     CheckAndPrint(node, seen);
     std::set<Node*> tmp = seen;
-    std::cout << "tmp: " << PrintSet(tmp) << std::endl;
-
+    //std::cout << "tmp: " << PrintSet(tmp) << std::endl;
+    int j=0;
     for(auto ch : node->child)
+    {
+        if (ch->child.empty() && ch->value->type == INTEGER)
+        {
+            std::cout << "child: " << ch << std::endl;
+
+        }
+        else
+            j++;
+
         CheckAndPrint(ch, seen);
+    }
+
+    if (node->child.size()==2 && j==0)
+    {
+        std::cout << "Operator can be executed: " << node << std::endl;
+        std::cout << "BEFORE EXECUTION: node: " << node << std::endl;
+        std::cout << "BEFORE EXECUTION: node->child[0]: " << node->child[0] << std::endl;
+        std::cout << "BEFORE EXECUTION: node->child[1]: " << node->child[1] << std::endl;
+        std::cout << "BEFORE EXECUTION: seen: " << PrintSet(seen) << std::endl;
+
+        seen.erase(node->child[0]);
+        seen.erase(node->child[1]);
+        ExecuteOperator(node);
+        std::cout << "AFTER EXECUTION: node: " << node << std::endl;
+        std::cout << "AFTER EXECUTION: seen.count(node): " << seen.count(node) << std::endl;
+        std::cout << "AFTER EXECUTION: seen: " << PrintSet(seen) << std::endl;
+
+    }
+
+
     for(auto ch : node->child)
     {
         if (tmp.count(ch) == 0)
@@ -228,6 +274,12 @@ int precedence(Node* node)
 
 
 bool isOperator(IOType ioType)
+{
+    std::set<IOType> opsSet = {ADD, SUBTRACT, MULTIPLY, DIVIDE};
+    return opsSet.count(ioType) > 0;
+}
+
+bool isOperator2(IOType ioType)
 {
     if (ioType == ADD || ioType == SUBTRACT || ioType == MULTIPLY || ioType == DIVIDE)
         return true;
@@ -266,7 +318,7 @@ std::vector<IntegerOrOperator*> expression(const std::string& str_expr)
 }
 
 
-Node* ExecuteOperator(Node* node, std::set<Node*>& seen)
+Node* ExecuteOperator(Node* node)
 {
     std::cout << "node: " << node << std::endl;
     if (node->child.empty())
@@ -292,22 +344,11 @@ Node* ExecuteOperator(Node* node, std::set<Node*>& seen)
         {
 
             if (node->value->type == ADD)
-            {
-                std::cout << "node (BEFORE): " << node << std::endl;
                 node->value->value = node->child[0]->value->value + node->child[1]->value->value;
-                *node = Node(new IntegerOrOperator(*(new int(node->value->value))));
-                std::cout << "node (AFTER): " << node << std::endl;
-            }
-
             else if (node->value->type == SUBTRACT)
                 node->value->value = node->child[0]->value->value - node->child[1]->value->value;
             else if (node->value->type == MULTIPLY)
-            {
-                std::cout << "node (BEFORE): " << node << std::endl;
                 node->value->value = node->child[0]->value->value * node->child[1]->value->value;
-                *node = Node(new IntegerOrOperator(*(new int(node->value->value))));
-                std::cout << "node (AFTER): " << node << std::endl;
-            }
             else if (node->value->type == DIVIDE)
             {
                 if (node->child[1]->value->value != 0)
@@ -332,8 +373,6 @@ Node* ExecuteOperator(Node* node, std::set<Node*>& seen)
 
 
             std::cout << "FFFFFFFFFFFFFFFFFFFFFFFFFFFF" << std::endl;
-            //BFS(node, seen);
-
             exit(1);
 
 
@@ -378,9 +417,9 @@ double evaluate(const std::vector<IntegerOrOperator*>& expression)
                 {
                     if (precedence(prevOp) < precedence(newNode))
                     {
-                        prevOp->child.push_back(newNode); // (+) gyereke a  (*)
+                        prevOp->child.push_back(newNode);
                         std::cout << prevOp << "->child.push_back(" << newNode << ")" << std::endl;
-                        newNode->child.push_back(prevNode); // (*) gyereke a (100)
+                        newNode->child.push_back(prevNode);
                         std::cout << newNode << "->child.push_back(" << prevNode << ")" << std::endl;
                     }
                     else
@@ -449,16 +488,20 @@ double evaluate(const std::vector<IntegerOrOperator*>& expression)
         {
             prevNode = newNode;
         }
-        std::cout << "--------------------------------------------" << std::endl;
+        //std::cout << "--------------------------------------------" << std::endl;
     }
 
     std::cout << "root: " << root << std::endl;
 
-    std::set<Node*> seen;
-    //ExecuteOperator(root,seen);
-    BFS(root,seen);
-
     /*
+    //ExecuteOperator(root,seen);
+    while (!root->child.empty())
+    {
+        std::set<Node*> seen;
+        BFS(root,seen);
+    }
+
+
     std::cout << "Executed root value: " << root << std::endl;
 
     if(root)
@@ -479,9 +522,7 @@ double evaluate(const std::vector<IntegerOrOperator*>& expression)
 int main()
 {
 
-
-
-    std::string s = "1000 + 100 * 15 - 77";
+    std::string s = "1000 + 100 * 15 / 77";
     std::vector<IntegerOrOperator*> e = expression(s);
     PrintExpression(e);
 
@@ -490,25 +531,59 @@ int main()
 
 /*
 
-
-
     Node* plus = new Node(new IntegerOrOperator('+'));
     Node* n1 = new Node(new IntegerOrOperator(100));
     Node* n2 = new Node(new IntegerOrOperator(50));
 
+
+
+    std::cout << "plus->child.size(): "<< plus->child.size() << std::endl;
+    std::cout << plus << "->child.push_back(" << n1 << "): " << std::endl;
     plus->child.push_back(n1);
+    std::cout << "plus->child.size(): "<< plus->child.size() << std::endl;
+    int k = 0;
+    for(auto c : plus->child)
+    {
+        std::cout << "plus->child[" << k << "] = " << c << std::endl;
+        k++;
+    }
+    n1->parent = plus;
+    std::cout << n1 << "->parent: "<< n1->parent << std::endl;
+    std::cout << "------------------------" << std::endl;
+    std::cout << plus << "->child.push_back(" << n2 << "): " << std::endl;
     plus->child.push_back(n2);
+    std::cout << "plus->child.size(): "<< plus->child.size() << std::endl;
+    int h = 0;
+    for(auto c : plus->child)
+    {
+        std::cout << "plus->child[" << h << "] = " << c << std::endl;
+        h++;
+    }
+    n2->parent = plus;
+    std::cout << n2 << "->parent: "<< n2->parent << std::endl;
 
 
-    std::set<Node*> nodeset;
-    nodeset.insert(n1);
-    nodeset.insert(n2);
-    nodeset.insert(plus);
 
 
-    std::cout << PrintSet(nodeset) << std::endl;
 
 
+    std::cout << "plus->child.size(): "<< plus->child.size() << std::endl;
+
+    plus->addChild(n1);
+    plus->addChild(n2);
+    int h = 0;
+    for(auto c : plus->child)
+        std::cout << "plus->child[" << h++ << "] = " << c << std::endl;
+    std::cout << n1 << "->parent: "<< n1->parent << std::endl;
+    std::cout << n2 << "->parent: "<< n2->parent << std::endl;
+    std::cout << "------------------------" << std::endl;
+
+*/
+
+
+
+
+    /*
     std::cout << "plus->value->value: "<< plus->value->value << std::endl;
 
     std::cout << n1 << " " << plus << " " << n2 << " = ";
@@ -523,10 +598,42 @@ int main()
     n2 = n1;
     //std::set<Node*> seen;
     //seen.insert(n1);
-*/
 
-    //std::cout << seen.count(n2) << std::endl;
+    */
+    //std::cout << isOperator(LEFT_PAR) << std::endl;
+    /*
+    std::default_random_engine generator;
+    std::uniform_int_distribution<int> distribution(0,6);
+    const int n = 1000000;
 
+    auto t1 = std::chrono::high_resolution_clock::now();
+    for (int i=0; i < n; ++i)
+    {
+        auto k = static_cast<IOType>(distribution(generator));
+        isOperator(k);
+    }
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::cout << "IsOp1: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << std::endl;
 
+    auto s1 = std::chrono::high_resolution_clock::now();
+    for (int i=0; i < n; ++i)
+    {
+        auto k = static_cast<IOType>(distribution(generator));
+        isOperator2(k);
+    }
+    auto s2 = std::chrono::high_resolution_clock::now();
+    std::cout << "IsOp2: " << std::chrono::duration_cast<std::chrono::microseconds>(s2 - s1).count() << std::endl;
+
+    const std::set<IOType> opsSet= {ADD, SUBTRACT, MULTIPLY, DIVIDE};
+    auto z1 = std::chrono::high_resolution_clock::now();
+    for (int i=0; i < n; ++i)
+    {
+        auto k = static_cast<IOType>(distribution(generator));
+        isOperator3(k, opsSet);
+    }
+    auto z2 = std::chrono::high_resolution_clock::now();
+    std::cout << "IsOp3: " << std::chrono::duration_cast<std::chrono::microseconds>(z2 - z1).count() << std::endl;
+
+    */
     return 0;
 }
