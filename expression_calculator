@@ -257,7 +257,7 @@ std::vector<IntegerOrOperator*> expression(const std::string& str_expr)
             i++;
         if (i >= str_expr.size())
             break;
-        if (expr.empty() && (str_expr[i] == '+' || str_expr[i] == '-'))
+        if ((expr.empty() || expr.back()->type==LEFT_PAR) && (str_expr[i] == '+' || str_expr[i] == '-'))
             expr.push_back(new IntegerOrOperator(0));
         if (!isdigit(str_expr[i]))
             expr.push_back(new IntegerOrOperator(str_expr[i]));
@@ -271,7 +271,6 @@ std::vector<IntegerOrOperator*> expression(const std::string& str_expr)
             {
                 expr.push_back(new IntegerOrOperator(int(str_expr[i] - '0')));
             }
-
         }
     }
     return expr;
@@ -473,8 +472,7 @@ double calculate(Node* node)
 
 int main()
 {
-
-    std::string s = "1000 * (100 + 3 / (2 * 10) + 77 *(15 + 10)) + 100";
+    std::string s = "10 * (100 - 3 / 4 *(-2 + 10) + (2 * 10) + 77 *(15 + 10)) + 100";
     std::vector<IntegerOrOperator*> e = expression(s);
     std::cout << calculate(evaluate(expression(s))) << std::endl;
 
