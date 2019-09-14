@@ -15,26 +15,7 @@ enum IOType
 };
 
 
-IOType OperatorToIOType(char operator_char)
-{
-    if (operator_char == '+')
-        return ADD;
-    else if (operator_char == '-')
-        return SUBTRACT;
-    else if (operator_char == '*')
-        return MULTIPLY;
-    else if (operator_char == '/')
-        return DIVIDE;
-    else if (operator_char == '(')
-        return LEFT_PAR;
-    else if (operator_char == ')')
-        return RIGHT_PAR;
-    else
-    {
-        std::cout << "Invalid operator!" << std::endl;
-        exit(1);
-    }
-}
+IOType OperatorToIOType(char operator_char);
 
 
 char IOTypeToOperator(IOType ioType)
@@ -80,6 +61,7 @@ public:
     }
 };
 
+
 class Node;
 std::ostream& operator<< (std::ostream&, const Node*);
 
@@ -109,7 +91,12 @@ std::ostream& operator<< (std::ostream &out, const Node* node)
     if (node)
     {
         if (node->value->type == INTEGER)
-            out << node->value->value;
+        {
+            if (node->value->value - double(int(node->value->value)) != 0.0)
+                out << node->value->value;
+            else
+                out << int(node->value->value);
+        }
         else
             out << IOTypeToOperator(node->value->type);
     }
@@ -133,7 +120,11 @@ std::string PrintSet(std::set<Node*>& seen)
             {
                 if (n->value->type == INTEGER)
                 {
-                    x.append(std::to_string(n->value->value));
+
+                    if (n->value->value - int(n->value->value) != 0)
+                        x.append(std::to_string(n->value->value));
+                    else
+                        x.append(std::to_string(int(n->value->value)));
                     x.append(", ");
                 }
                 else
@@ -178,7 +169,8 @@ Node* ExecuteOperator(Node*);
 
 void BFS(Node* node, std::set<Node*>& seen)
 {
-    //std::cout << "BFS(" << node << ", " << PrintSet(seen) << ")" << std::endl;
+    std::cout << "nodeIN = " << node << std::endl;
+    std::cout << "BFS(" << node << ", " << PrintSet(seen) << ")" << std::endl;
     CheckAndPrint(node, seen);
     std::set<Node*> tmp = seen;
 
@@ -195,13 +187,21 @@ void BFS(Node* node, std::set<Node*>& seen)
                 BFS(node, seen);
         }
     }
+    else if (node->child.empty())
+        return;
 
-    for(int i = 0; i < node->child.size(); i++)
+
+
+    if (node && !(node->child.empty()))
     {
-        if (!tmp.count(node->child[i]))
-            BFS(node->child[i], seen);
+        for(auto& i : node->child)
+        {
+            if (!tmp.count(i))
+                BFS(i, seen);
+        }
     }
 
+    std::cout << "nodeOUT = " << node << std::endl;
     //std::cout << "------------------" << std::endl;
 }
 
@@ -279,6 +279,7 @@ Node* ExecuteOperator(Node* node)
         ForcedStop("Invalid expression!");
     else if (node->child.size() == 2)
     {
+        std::cout << "Calculate: " << node->child[0] << " " << node << " " << node->child[1];
         if (node->child[0]->value->type == INTEGER && node->child[1]->value->type == INTEGER)
         {
             if (node->value->type == ADD)
@@ -294,7 +295,7 @@ Node* ExecuteOperator(Node* node)
                 else
                     ForcedStop("Zero divisor!");
             }
-
+            std::cout << " = " << node->value->value << std::endl;
             node->value->type = INTEGER;
 
             delete node->child[1];
@@ -310,13 +311,34 @@ Node* ExecuteOperator(Node* node)
     return node;
 }
 
+IOType OperatorToIOType(char operator_char)
+{
+    if (operator_char == '+')
+        return ADD;
+    else if (operator_char == '-')
+        return SUBTRACT;
+    else if (operator_char == '*')
+        return MULTIPLY;
+    else if (operator_char == '/')
+        return DIVIDE;
+    else if (operator_char == '(')
+        return LEFT_PAR;
+    else if (operator_char == ')')
+        return RIGHT_PAR;
+    else
+    {
+        std::cout << "Invalid operator!" << std::endl;
+        exit(1);
+    }
+}
+
 
 Node* evaluate(const std::vector<IntegerOrOperator*>& expression)
 {
-    //std::cout << "Expression: ";
-    //PrintExpression(expression);
-    //std::cout << " processing begins..." << std::endl;
-    //std::cout << "-----------------------" << std::endl;
+    std::cout << "Expression: ";
+    PrintExpression(expression);
+    std::cout << " processing begins..." << std::endl;
+    std::cout << "-----------------------" << std::endl;
 
     Node* prevNode = nullptr;
     Node* newNode = nullptr;
@@ -327,8 +349,8 @@ Node* evaluate(const std::vector<IntegerOrOperator*>& expression)
     {
         newNode = new Node(expression[i]);
 
-        //std::cout << "newNode: " << newNode << std::endl;
-        //std::cout << "prevNode: " << prevNode << std::endl;
+        std::cout << "newNode: " << newNode << std::endl;
+        std::cout << "prevNode: " << prevNode << std::endl;
         //std::cout << "prevOp: " << prevOp << std::endl;
 
         if (isOperator(newNode->value->type))
@@ -444,13 +466,14 @@ Node* evaluate(const std::vector<IntegerOrOperator*>& expression)
 double calculate(Node* node)
 {
     //std::cout << "root: " << node << std::endl;
-    std::set<Node *> seen;
+    std::set<Node*> seen;
     BFS(node, seen);
-
+    std::cout << "XXXX" << std::endl;
     if (node)
         return node->value->value;
     else
         ForcedStop("Invalid expression!");
+
     return 0.0;
 }
 
@@ -460,7 +483,9 @@ int main()
     std::string s = "10 * (100 - 3 / (2 * 10) + 77 *(15 + 10)) + 100";
 
     //std::string s = "68 / (8 * 7 - (2 + 1 - 33 / (3874 -32 *232) / 10 - 2/5))";
+
     std::vector<IntegerOrOperator*> e = expression(s);
+
     std::cout << calculate(evaluate(expression(s))) << std::endl;
 
     return 0;
