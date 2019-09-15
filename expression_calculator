@@ -85,7 +85,7 @@ std::ostream& operator<< (std::ostream &out, const Node* node)
     {
         if (node->value->type == INTEGER)
         {
-            if (node->value->value - double(int(node->value->value)) != 0.0)
+            if (node->value->value - int(node->value->value) != 0)
                 out << node->value->value;
             else
                 out << int(node->value->value);
@@ -113,18 +113,14 @@ std::string PrintSet(std::set<Node*>& seen)
             {
                 if (n->value->type == INTEGER)
                 {
-
                     if (n->value->value - int(n->value->value) != 0)
                         x.append(std::to_string(n->value->value));
                     else
                         x.append(std::to_string(int(n->value->value)));
-                    x.append(", ");
                 }
                 else
-                {
                     x.append(std::string(1,IOTypeToOperator(n->value->type)));
-                    x.append(", ");
-                }
+                x.append(", ");
             }
         }
         x.pop_back();
@@ -139,7 +135,7 @@ Node* ExecuteOperator(Node*);
 
 void BFS(Node* node, std::set<Node*>& seen)
 {
-    while (!(seen.size() == 1 && seen.count(node) == 1 && node->child.empty()))
+    while (!(seen.size() == 1 && node->child.empty()))
     {
         std::cout << "BFS(" << node << ", " << PrintSet(seen) << ")" << std::endl;
         if (seen.count(node) == 0)
@@ -162,12 +158,15 @@ void BFS(Node* node, std::set<Node*>& seen)
 
         if (!(node->child.empty()))
         {
-            for (auto &i : node->child)
+            for (auto& ch : node->child)
             {
-                if (!tmp.count(i))
-                    BFS(i, seen);
+                if (!tmp.count(ch))
+                    BFS(ch, seen);
             }
         }
+
+        //std::cout << "exit BFS:" << std::endl;
+        //std::cout << "node: " << node << ", " << "seen: " << PrintSet(seen) << std::endl;
         return;
     }
     //std::cout << "------------------" << std::endl;
@@ -437,8 +436,6 @@ double calculate(std::string& str_expr)
 int main()
 {
     std::string s = "10 * (100 - 3 / (2 * 10) + 77 *(15 + 10)) + 100";
-
-    //std::string s = "68 / (8 * 7 - (2 + 1 - 33 / (3874 -32 *232) / 10 - 2/5))";
     std::cout << calculate(s) << std::endl;
 
     return 0;
