@@ -15,8 +15,8 @@ enum IOType
 };
 
 
-IOType OperatorToIOType(char operator_char);
-
+IOType OperatorToIOType(char);
+bool isOperator(IOType);
 
 char IOTypeToOperator(IOType ioType)
 {
@@ -98,6 +98,7 @@ std::ostream& operator<< (std::ostream &out, const Node* node)
     return out;
 }
 
+/*
 std::string PrintSet(std::set<Node*>& seen)
 {
     if (seen.empty())
@@ -129,15 +130,15 @@ std::string PrintSet(std::set<Node*>& seen)
         return x;
     }
 }
-
+*/
 
 Node* ExecuteOperator(Node*);
 
 void BFS(Node* node, std::set<Node*>& seen)
 {
+    //std::cout << "Enter BFS(" << node << ", " << PrintSet(seen) << ")" << std::endl;
     while (!(seen.size() == 1 && node->child.empty()))
     {
-        //std::cout << "BFS(" << node << ", " << PrintSet(seen) << ")" << std::endl;
         if (seen.count(node) == 0)
             seen.insert(node);
 
@@ -151,22 +152,19 @@ void BFS(Node* node, std::set<Node*>& seen)
             {
                 node=node->parent;
                 BFS(node, seen);
-                return;
+                //return;
             }
         }
         else
         {
             for (auto& ch : node->child)
             {
-                if (!seen.count(ch))
+                if (!seen.count(ch) && isOperator(ch->value->type))
                     BFS(ch, seen);
             }
         }
 
-
-        //std::cout << "exit BFS:" << std::endl;
-        //std::cout << "node: " << node << ", " << "seen: " << PrintSet(seen) << std::endl;
-
+        //std::cout << "Exit BFS(" << node << ", " << PrintSet(seen) << ")" << std::endl;
         return;
     }
 }
@@ -177,6 +175,7 @@ void ForcedStop(const std::string& message)
     exit(1);
 }
 
+/*
 void PrintExpression(const std::vector<IntegerOrOperator*>& expression)
 {
     for(auto x : expression)
@@ -187,6 +186,7 @@ void PrintExpression(const std::vector<IntegerOrOperator*>& expression)
             std::cout << IOTypeToOperator(x->type) << " ";
     }
 }
+*/
 
 int precedence(Node* node)
 {
@@ -244,7 +244,7 @@ Node* ExecuteOperator(Node* node)
         ForcedStop("Invalid expression!");
     else if (node->child.size() == 2)
     {
-        std::cout << "Calculate: " << node->child[0] << " " << node << " " << node->child[1];
+        //std::cout << "Calculate: " << node->child[0] << " " << node << " " << node->child[1];
         if (node->child[0]->value->type == INTEGER && node->child[1]->value->type == INTEGER)
         {
             if (node->value->type == ADD)
@@ -260,15 +260,13 @@ Node* ExecuteOperator(Node* node)
                 else
                     ForcedStop("Zero divisor!");
             }
-            std::cout << " = " << node->value->value << std::endl;
+            //std::cout << " = " << node->value->value << std::endl;
             node->value->type = INTEGER;
 
             for (int k=node->child.size(); k==0; --k)
-            {
                 delete node->child[k];
-            }
-            node->child.clear();
 
+            node->child.clear();
         }
         else
             ForcedStop("Invalid expression!");
@@ -301,11 +299,6 @@ IOType OperatorToIOType(char operator_char)
 
 Node* evaluate(const std::vector<IntegerOrOperator*>& expression)
 {
-    std::cout << "Expression: ";
-    PrintExpression(expression);
-    std::cout << " processing begins..." << std::endl;
-    std::cout << "-----------------------" << std::endl;
-
     Node* prevNode = nullptr;
     Node* newNode = nullptr;
     Node* root = nullptr;
@@ -314,11 +307,6 @@ Node* evaluate(const std::vector<IntegerOrOperator*>& expression)
     for(unsigned int i = 0; i < expression.size(); ++i)
     {
         newNode = new Node(expression[i]);
-
-        //std::cout << "newNode: " << newNode << std::endl;
-        //std::cout << "prevNode: " << prevNode << std::endl;
-        //std::cout << "prevOp: " << prevOp << std::endl;
-
         if (isOperator(newNode->value->type))
         {
             if (prevNode)
@@ -368,7 +356,6 @@ Node* evaluate(const std::vector<IntegerOrOperator*>& expression)
 
                 if (isOperator(prevNode->value->type) && prevNode->child.empty())
                     prevNode->addChild(newNode);
-
             }
 
             prevNode = newNode;
@@ -396,7 +383,6 @@ Node* evaluate(const std::vector<IntegerOrOperator*>& expression)
             newNode = evaluate(loc_expr);
             prevOp->addChild(newNode);
             prevNode = newNode;
-
         }
         else
         {
@@ -406,14 +392,7 @@ Node* evaluate(const std::vector<IntegerOrOperator*>& expression)
             prevNode = newNode;
             prevOp = isOperator(prevNode->value->type) ? prevNode : prevOp;
         }
-
-        //std::cout << "-----------------------" << std::endl;
     }
-
-    //std::cout << "Expression: ";
-    //PrintExpression(expression);
-    //std::cout << " processed successfully..." << std::endl;
-
     return root;
 }
 
