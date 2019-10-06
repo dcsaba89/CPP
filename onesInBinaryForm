@@ -1,0 +1,26 @@
+#include <iostream>
+
+int onesInBinaryForm(int n)
+{
+    int counter = 0;
+    while (n > 0)
+    {
+        if (n % 2 == 1)
+            ++counter;
+        n /= 2;
+    }
+
+    return counter;
+}
+
+
+int main()
+{
+    int N;
+    std::cout << "Enter a number: " << std::endl;
+    std::cin >> N;
+
+    std::cout << onesInBinaryForm(N) << std::endl;
+
+    return 0;
+}
